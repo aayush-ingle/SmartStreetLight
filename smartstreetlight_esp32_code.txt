@@ -1,0 +1,77 @@
+#include <Wire.h>
+#include <BH1750.h>
+
+BH1750 lightMeter;
+
+#define LED_PIN 25
+#define PIR_PIN 27
+
+#define OFF_BRIGHTNESS 0
+#define DIM_BRIGHTNESS 50
+#define FULL_BRIGHTNESS 255
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(PIR_PIN, INPUT);
+
+  Wire.begin(21, 22);
+
+  if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE)) {
+    Serial.println("BH1750_OK");
+  } else {
+    Serial.println("BH1750_ERROR");
+  }
+
+  analogWrite(LED_PIN, 0);
+
+  delay(2000);
+
+  Serial.println("SYSTEM_READY");
+}
+
+void loop() {
+
+  // Read GY-30
+  float lux = lightMeter.readLightLevel();
+
+  if (lux < 0) {
+    lux = 0;
+  }
+
+  // Read PIR
+  int motion = digitalRead(PIR_PIN);
+
+  int brightness;
+
+  // Night
+  if (lux < 50) {
+
+    if (motion == HIGH) {
+      brightness = FULL_BRIGHTNESS;
+    } else {
+      brightness = DIM_BRIGHTNESS;
+    }
+
+  }
+  // Day
+  else {
+    brightness = OFF_BRIGHTNESS;
+  }
+
+  // Control LED
+  analogWrite(LED_PIN, brightness);
+
+  // Send data
+  Serial.print("DATA,");
+  Serial.print(millis());
+  Serial.print(",");
+  Serial.print(lux, 2);
+  Serial.print(",");
+  Serial.print(motion);
+  Serial.print(",");
+  Serial.println(brightness);
+
+  delay(1000);
+}
